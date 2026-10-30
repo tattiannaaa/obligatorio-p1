@@ -43,7 +43,13 @@ class CasoUso:
         self.__puntaje_minimo = valor
 
     def __str__(self):
-        return ("Código: " + str(self.__codigo)
-                + " | Nombre: " + self.__nombre
-                + " | Presupuesto: " + str(self.__presupuesto)
-                + " | Puntaje mínimo: " + str(self.__puntaje_minimo))
+        return (
+            "Código: "
+            + str(self.__codigo)
+            + " | Nombre: "
+            + self.__nombre
+            + " | Presupuesto: "
+            + str(self.__presupuesto)
+            + " | Puntaje mínimo: "
+            + str(self.__puntaje_minimo)
+        )

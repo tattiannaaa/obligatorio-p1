@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from exceptions.ErrorLaboratorio import ErrorLaboratorio
 
+
 class OpcionIA(ABC):
     def __init__(self, codigo, nombre, puntajes):
         self.__codigo = codigo
@@ -28,10 +29,12 @@ class OpcionIA(ABC):
     @puntajes.setter
     def puntajes(self, valor):
         if not isinstance(valor, dict) or len(valor) == 0:
-            raise ErrorLaboratorio("Los puntajes deben ser un diccionario con al menos un criterio.")
+            raise ErrorLaboratorio(
+                "Los puntajes deben ser un diccionario con al menos un criterio."
+            )
         for codigo_criterio in valor:
             puntaje = valor[codigo_criterio]
-        if not isinstance(puntaje, int) or puntaje < 0 or puntaje > 10:
+            if not isinstance(puntaje, int) or puntaje < 0 or puntaje > 10:
                 raise ErrorLaboratorio("Cada puntaje debe ser un entero entre 0 y 10.")
         self.__puntajes = valor
 
@@ -41,6 +44,7 @@ class OpcionIA(ABC):
 
     def __str__(self):
         return "Código: " + str(self.__codigo) + " | Nombre: " + self.__nombre
+
 
 class ServicioAPI(OpcionIA):
     def __init__(self, codigo, nombre, puntajes, costo_por_1000, consultas_estimadas):
@@ -60,21 +64,29 @@ class ServicioAPI(OpcionIA):
 
     @property
     def consultas_estimadas(self):
-        return self.__consultas_estimadas   
+        return self.__consultas_estimadas
 
     @consultas_estimadas.setter
     def consultas_estimadas(self, valor):
         if not isinstance(valor, int) or valor <= 0:
-            raise ErrorLaboratorio("Las consultas estimadas deben ser un valor positivo.")
+            raise ErrorLaboratorio(
+                "Las consultas estimadas deben ser un entero positivo."
+            )
         self.__consultas_estimadas = valor
 
     def costo_estimado(self):
         return (self.__consultas_estimadas / 1000) * self.__costo_por_1000
 
     def __str__(self):
-        return (super().__str() + " | Tipo: Servicio API"
-                + " | Costo por 1000: " + str(self.__costo_por_1000)
-                + " | Consultas estimadas: " + str(self.__consultas_estimadas))
+        return (
+            super().__str__()
+            + " | Tipo: Servicio API"
+            + " | Costo por 1000: "
+            + str(self.__costo_por_1000)
+            + " | Consultas estimadas: "
+            + str(self.__consultas_estimadas)
+        )
+
 
 class PlanMensual(OpcionIA):
     def __init__(self, codigo, nombre, puntajes, usuarios, costo_por_usuario):
@@ -86,7 +98,7 @@ class PlanMensual(OpcionIA):
     def usuarios(self):
         return self.__usuarios
 
-    @usuarios.setter   
+    @usuarios.setter
     def usuarios(self, valor):
         if not isinstance(valor, int) or valor <= 0:
             raise ErrorLaboratorio("Los usuarios deben ser un entero positivo.")
@@ -94,12 +106,23 @@ class PlanMensual(OpcionIA):
 
     @property
     def costo_por_usuario(self):
-        return self.costo_por_usuario
+        return self.__costo_por_usuario
 
     @costo_por_usuario.setter
     def costo_por_usuario(self, valor):
-        if not isinstance(valor, int) or valor < 0:
+        if not isinstance(valor, (int, float)) or valor < 0:
             raise ErrorLaboratorio("El costo por usuario no debe ser negativo")
-        self.costo_por_usuario = valor
+        self.__costo_por_usuario = valor
 
+    def costo_estimado(self):
+        return self.__usuarios * self.__costo_por_usuario
 
+    def __str__(self):
+        return (
+            super().__str__()
+            + " | Tipo: Plan Mensual"
+            + " | Usuarios: "
+            + str(self.__usuarios)
+            + " | Costo por usuario: "
+            + str(self.__costo_por_usuario)
+        )
