@@ -40,3 +40,10 @@ class CasoUso:
         if not isinstance(valor, (int, float)) or valor < 0 or valor > 10:
             raise ErrorLaboratorio("El puntaje mínimo debe estar entre 0 y 10.")
         self.__puntaje_minimo = valor
+
+    def __str__(self):
+        return (
+            f"{self.__codigo} - {self.__nombre} | "
+            f"Presupuesto: USD {self.__presupuesto:.2f} | "
+            f"Puntaje mínimo: {self.__puntaje_minimo:.2f}"
+        )

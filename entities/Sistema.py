@@ -137,7 +137,11 @@ class Sistema:
                 and evaluacion.caso.codigo == caso.codigo
             ):
                 raise ErrorLaboratorio(
-                    "Ya existe una evaluación para esa opción y ese caso."
+                    "Ya existe una evaluación de "
+                    + opcion.nombre
+                    + " para "
+                    + caso.nombre
+                    + "."
                 )
 
         evaluacion = Evaluacion(
@@ -201,6 +205,8 @@ class Sistema:
             opcion.costo_por_1000 = costo_anterior
             opcion.consultas_estimadas = consultas_anteriores
             raise
+        self.recalcular()
+        return opcion
 
     def actualizar_plan_mensual(self, codigo_opcion, usuarios, costo_por_usuario):
         opcion = self.buscar_opcion(codigo_opcion)
@@ -227,10 +233,18 @@ class Sistema:
                 resultado.append(evaluacion)
         return resultado
 
+    def evaluaciones_de_opcion(self, codigo_opcion):
+        opcion = self.buscar_opcion(codigo_opcion)
+        resultado = []
+        for evaluacion in self.__evaluaciones:
+            if evaluacion.opcion.codigo == opcion.codigo:
+                resultado.append(evaluacion)
+        return resultado
+
     def cantidad_recomendadas(self, codigo_caso):
         contador = 0
         for evaluacion in self.evaluaciones_de_caso(codigo_caso):
-            if evaluacion.estado == "Recomendada":
+            if evaluacion.estado == Evaluacion.RECOMENDADA:
                 contador = contador + 1
         return contador
 
@@ -244,7 +258,7 @@ class Sistema:
     def ranking_de_caso(self, codigo_caso):
         recomendadas = []
         for evaluacion in self.evaluaciones_de_caso(codigo_caso):
-            if evaluacion.estado == "Recomendada":
+            if evaluacion.estado == Evaluacion.RECOMENDADA:
                 recomendadas.append(evaluacion)
         return sorted(recomendadas, key=self.__clave_ranking)
 

@@ -42,6 +42,20 @@ class OpcionIA(ABC):
     def costo_estimado(self):
         pass
 
+    @abstractmethod
+    def tipo(self):
+        pass
+
+    @abstractmethod
+    def descripcion_costo(self):
+        pass
+
+    def __str__(self):
+        return (
+            f"{self.__codigo} - {self.__nombre} ({self.tipo()}) | "
+            f"Costo mensual: USD {self.costo_estimado():.2f}"
+        )
+
 class ServicioAPI(OpcionIA):
     def __init__(self, codigo, nombre, puntajes, costo_por_1000, consultas_estimadas):
         super().__init__(codigo, nombre, puntajes)
@@ -73,6 +87,15 @@ class ServicioAPI(OpcionIA):
     def costo_estimado(self):
         return (self.__consultas_estimadas / 1000) * self.__costo_por_1000
 
+    def tipo(self):
+        return "Servicio API"
+
+    def descripcion_costo(self):
+        return (
+            f"USD {self.__costo_por_1000:.2f} por cada 1000 consultas; "
+            f"{self.__consultas_estimadas} consultas estimadas."
+        )
+
 class PlanMensual(OpcionIA):
     def __init__(self, codigo, nombre, puntajes, usuarios, costo_por_usuario):
         super().__init__(codigo, nombre, puntajes)
@@ -101,3 +124,12 @@ class PlanMensual(OpcionIA):
 
     def costo_estimado(self):
         return self.__usuarios * self.__costo_por_usuario
+
+    def tipo(self):
+        return "Plan mensual"
+
+    def descripcion_costo(self):
+        return (
+            f"{self.__usuarios} usuarios; "
+            f"USD {self.__costo_por_usuario:.2f} mensuales por usuario."
+        )

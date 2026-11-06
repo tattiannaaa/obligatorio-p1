@@ -40,7 +40,9 @@ def pedir_decimal(mensaje, minimo, maximo=None):
         texto = input(mensaje).strip().replace(",", ".")
         try:
             numero = float(texto)
-            if numero < minimo:
+            if numero != numero or numero in (float("inf"), float("-inf")):
+                print("Debe ingresar un número.")
+            elif numero < minimo:
                 print("El valor debe ser mayor o igual que " + str(minimo) + ".")
             elif maximo is not None and numero > maximo:
                 print("El valor debe ser menor o igual que " + str(maximo) + ".")
@@ -51,18 +53,96 @@ def pedir_decimal(mensaje, minimo, maximo=None):
     return resultado
 
 
+##Funciones de formato
+
+def usd(monto):
+    return f"USD {monto:.2f}"
+
+
+def plural(cantidad, singular, plural_texto):
+    if cantidad == 1:
+        return singular
+    return plural_texto
+
+
+def imprimir_tabla(encabezados, filas):
+    anchos = []
+    for i in range(len(encabezados)):
+        ancho = len(encabezados[i])
+        for fila in filas:
+            if len(fila[i]) > ancho:
+                ancho = len(fila[i])
+        anchos.append(ancho)
+
+    lineas = [encabezados] + filas
+    for fila in lineas:
+        celdas = []
+        for i in range(len(fila)):
+            celdas.append(fila[i].ljust(anchos[i]))
+        print("  ".join(celdas).rstrip())
+
+
+def mostrar_tabla_opciones(sistema):
+    filas = []
+    for opcion in sistema.opciones:
+        filas.append([
+            str(opcion.codigo),
+            opcion.nombre,
+            opcion.tipo(),
+            usd(opcion.costo_estimado()),
+        ])
+    imprimir_tabla(["Código", "Nombre", "Tipo", "Costo mensual"], filas)
+
+
+def mostrar_tabla_casos(sistema):
+    filas = []
+    for caso in sistema.casos:
+        filas.append([
+            str(caso.codigo),
+            caso.nombre,
+            usd(caso.presupuesto),
+            f"{caso.puntaje_minimo:.2f}",
+        ])
+    imprimir_tabla(["Código", "Nombre", "Presupuesto", "Puntaje mínimo"], filas)
+
+
+def mostrar_tabla_evaluaciones(evaluaciones, mostrar_caso=False):
+    # Por defecto la segunda columna es la opción; al actualizar una opción
+    # interesa ver a qué caso pertenece cada evaluación.
+    filas = []
+    for ev in evaluaciones:
+        if mostrar_caso:
+            nombre = ev.caso.nombre
+        else:
+            nombre = ev.opcion.nombre
+        filas.append([
+            str(ev.codigo),
+            nombre,
+            f"{ev.puntaje_total():.2f}",
+            usd(ev.costo_total()),
+            ev.estado,
+        ])
+    if mostrar_caso:
+        segunda_columna = "Caso de uso"
+    else:
+        segunda_columna = "Opción"
+    imprimir_tabla(
+        ["Código", segunda_columna, "Puntaje", "Costo mensual", "Estado"], filas
+    )
+
+
 ##Funciones para elegir un caso o una opción
 
 def elegir_caso(sistema):
     if len(sistema.casos) == 0:
         print("No hay casos de uso registrados.")
         return None
-    print("Casos de uso:")
-    for caso in sistema.casos:
-        print(str(caso.codigo) + ". " + caso.nombre)
+    print("\nCASOS DE USO")
+    mostrar_tabla_casos(sistema)
+    print()
     elegido = None
     while elegido is None:
-        codigo = pedir_entero("Código del caso: ", 1)
+        codigo = pedir_entero("Código del caso de uso: ", 1)
         try:
             elegido = sistema.buscar_caso(codigo)
         except ErrorLaboratorio as e:
@@ -74,9 +154,9 @@ def elegir_opcion(sistema):
     if len(sistema.opciones) == 0:
         print("No hay opciones registradas.")
         return None
-    print("Opciones de IA:")
-    for opcion in sistema.opciones:
-        print(str(opcion.codigo) + ". " + opcion.nombre)
+    print("\nOPCIONES DISPONIBLES")
+    mostrar_tabla_opciones(sistema)
+    print()
     elegida = None
     while elegida is None:
         codigo = pedir_entero("Código de la opción: ", 1)
@@ -90,7 +170,6 @@ def elegir_opcion(sistema):
 ##Registrar
 
 def registrar_criterio(sistema):
-    print("Registrar criterio")
     if len(sistema.opciones) > 0:
         print("No se pueden registrar criterios después de registrar la primera opción.")
         return
@@ -104,18 +183,19 @@ def registrar_criterio(sistema):
         else:
             nombre_valido = True
 
-    peso = pedir_entero("Peso (entero positivo): ", 1)
+    peso = pedir_entero("Peso: ", 1)
 
     try:
         criterio = sistema.registrar_criterio(nombre, peso)
-        print("Criterio registrado:", criterio)
+        print("\nCriterio registrado correctamente.")
+        print("Código:", criterio.codigo)
+        print("Nombre:", criterio.nombre)
+        print("Peso:", criterio.peso)
     except ErrorLaboratorio as e:
         print("Error:", e)
 
 
 def registrar_caso(sistema):
-    print("Registrar caso de uso")
-
     nombre = ""
     nombre_valido = False
     while not nombre_valido:
@@ -125,18 +205,21 @@ def registrar_caso(sistema):
         else:
             nombre_valido = True
 
-    presupuesto = pedir_decimal("Presupuesto mensual en USD (mayor o igual que 0): ", 0)
+    presupuesto = pedir_decimal("Presupuesto mensual en USD: ", 0)
     puntaje_minimo = pedir_decimal("Puntaje mínimo aceptable (0 a 10): ", 0, 10)
 
     try:
         caso = sistema.registrar_caso(nombre, presupuesto, puntaje_minimo)
-        print("Caso registrado:", caso)
+        print("\nCaso de uso registrado correctamente.")
+        print("Código:", caso.codigo)
+        print("Nombre:", caso.nombre)
+        print("Presupuesto mensual:", usd(caso.presupuesto))
+        print(f"Puntaje mínimo: {caso.puntaje_minimo:.2f}")
     except ErrorLaboratorio as e:
         print("Error:", e)
 
 
 def registrar_opcion(sistema):
-    print("Registrar opción de IA")
     if len(sistema.criterios) == 0:
         print("Debe existir al menos un criterio para registrar opciones.")
         return
@@ -150,20 +233,24 @@ def registrar_opcion(sistema):
         else:
             nombre_valido = True
 
-    tipo = pedir_entero("Tipo (1. Servicio API, 2. Plan mensual): ", 1, 2)
+    print("\nTipo de opción:")
+    print("1. Servicio API")
+    print("2. Plan mensual")
+    tipo = pedir_entero("Seleccione un tipo: ", 1, 2)
+    print()
 
     if tipo == 1:
-        costo_por_1000 = pedir_decimal("Precio por cada 1000 consultas (USD): ", 0)
-        consultas = pedir_entero("Cantidad estimada de consultas al mes: ", 1)
+        costo_por_1000 = pedir_decimal("Costo en USD por cada 1000 consultas: ", 0)
+        consultas = pedir_entero("Cantidad de consultas mensuales estimadas: ", 1)
     else:
         usuarios = pedir_entero("Cantidad de usuarios: ", 1)
-        costo_por_usuario = pedir_decimal("Costo mensual por usuario (USD): ", 0)
+        costo_por_usuario = pedir_decimal("Costo mensual en USD por usuario: ", 0)
 
-    print("Ingrese un puntaje de 0 a 10 para cada criterio:")
+    print("\nPUNTAJES POR CRITERIO")
     puntajes = {}
     for criterio in sistema.criterios:
         puntajes[criterio.codigo] = pedir_entero(
-            criterio.nombre + " (peso " + str(criterio.peso) + "): ", 0, 10
+            criterio.nombre + " (0 a 10): ", 0, 10
         )
 
     try:
@@ -175,14 +262,16 @@ def registrar_opcion(sistema):
             opcion = sistema.registrar_plan_mensual(
                 nombre, puntajes, usuarios, costo_por_usuario
             )
-        print("Opción registrada:", opcion)
-        print("Costo mensual estimado:", opcion.costo_estimado())
+        print("\nOpción registrada correctamente.")
+        print("Código:", opcion.codigo)
+        print("Nombre:", opcion.nombre)
+        print("Tipo:", opcion.tipo())
+        print("Costo mensual estimado:", usd(opcion.costo_estimado()))
     except ErrorLaboratorio as e:
         print("Error:", e)
 
 
 def registrar_evaluacion_individual(sistema):
-    print("Evaluación individual")
     opcion = elegir_opcion(sistema)
     if opcion is None:
         return
@@ -191,141 +280,211 @@ def registrar_evaluacion_individual(sistema):
         return
     try:
         evaluacion = sistema.registrar_evaluacion(opcion.codigo, caso.codigo)
-        print("Evaluación registrada:")
+        print("\nEvaluación registrada correctamente.")
         print(evaluacion)
     except ErrorLaboratorio as e:
-        print("Error:", e)
+        print(e)
+        print("No se creó una nueva evaluación.")
 
 
 ##Comparar
 
 def comparar_opciones(sistema):
-    print("\n-- Comparar opciones para un caso --")
+    if len(sistema.opciones) == 0:
+        print("No hay opciones registradas para comparar.")
+        return
     caso = elegir_caso(sistema)
     if caso is None:
         return
     try:
+        anteriores = len(sistema.evaluaciones_de_caso(caso.codigo))
         nuevas = sistema.comparar_caso(caso.codigo)
-        print("Resultado de la comparación para " + caso.nombre + ":")
-        for evaluacion in nuevas:
-            print(evaluacion)
+
+        print("\nComparación realizada para " + caso.nombre + ".")
+        if anteriores > 0:
+            print(
+                plural(anteriores, "Se reemplazó ", "Se reemplazaron ")
+                + str(anteriores)
+                + plural(anteriores, " evaluación anterior.", " evaluaciones anteriores.")
+            )
+        print(
+            plural(len(nuevas), "Se generó ", "Se generaron ")
+            + str(len(nuevas))
+            + plural(len(nuevas), " evaluación nueva.", " evaluaciones nuevas.")
+        )
+        print()
+        mostrar_tabla_evaluaciones(nuevas)
+        print("\nOpciones recomendadas:", sistema.cantidad_recomendadas(caso.codigo))
     except ErrorLaboratorio as e:
         print("Error:", e)
 
 
 ##Actualizar
 
+def mostrar_recalculadas(evaluaciones, mostrar_caso=False):
+    cantidad = len(evaluaciones)
+    print(
+        plural(cantidad, "Se recalculó ", "Se recalcularon ")
+        + str(cantidad)
+        + plural(cantidad, " evaluación.", " evaluaciones.")
+    )
+    if cantidad > 0:
+        print()
+        mostrar_tabla_evaluaciones(evaluaciones, mostrar_caso)
+
+
 def actualizar_presupuesto_caso(sistema):
-    print("Actualizar presupuesto de un caso")
     caso = elegir_caso(sistema)
     if caso is None:
         return
-    nuevo = pedir_decimal("Nuevo presupuesto mensual en USD (mayor o igual que 0): ", 0)
+    nuevo = pedir_decimal("Nuevo presupuesto mensual en USD: ", 0)
     try:
+        anterior = caso.presupuesto
         sistema.actualizar_presupuesto(caso.codigo, nuevo)
-        cantidad = len(sistema.evaluaciones_de_caso(caso.codigo))
-        print("Presupuesto actualizado. Evaluaciones recalculadas:", cantidad)
+        print("\nPresupuesto actualizado correctamente.")
+        print("Presupuesto anterior:", usd(anterior))
+        print("Presupuesto nuevo:", usd(caso.presupuesto))
+        mostrar_recalculadas(sistema.evaluaciones_de_caso(caso.codigo))
     except ErrorLaboratorio as e:
         print("Error:", e)
 
 
 def actualizar_opcion(sistema):
-    print("Actualizar precio o consumo de una opción")
     opcion = elegir_opcion(sistema)
     if opcion is None:
         return
+    print("\nOpción seleccionada:", opcion.nombre)
+    print("Tipo:", opcion.tipo())
+    costo_anterior = opcion.costo_estimado()
     try:
         if isinstance(opcion, ServicioAPI):
             costo_por_1000 = pedir_decimal(
-                "Nuevo precio por cada 1000 consultas (USD): ", 0
+                "Costo en USD por cada 1000 consultas: ", 0
             )
-            consultas = pedir_entero("Nueva cantidad estimada de consultas: ", 1)
+            consultas = pedir_entero("Cantidad de consultas mensuales estimadas: ", 1)
             sistema.actualizar_servicio_api(opcion.codigo, costo_por_1000, consultas)
         else:
-            usuarios = pedir_entero("Nueva cantidad de usuarios: ", 1)
-            costo_por_usuario = pedir_decimal(
-                "Nuevo costo mensual por usuario (USD): ", 0
-            )
+            usuarios = pedir_entero("Cantidad de usuarios: ", 1)
+            costo_por_usuario = pedir_decimal("Costo mensual en USD por usuario: ", 0)
             sistema.actualizar_plan_mensual(opcion.codigo, usuarios, costo_por_usuario)
-        print("Opción actualizada:", opcion)
-        print("Nuevo costo mensual:", opcion.costo_estimado())
-        print("Evaluaciones recalculadas.")
+        print("\nOpción actualizada correctamente.")
+        print("Costo mensual anterior:", usd(costo_anterior))
+        print("Costo mensual nuevo:", usd(opcion.costo_estimado()))
+        mostrar_recalculadas(sistema.evaluaciones_de_opcion(opcion.codigo), True)
     except ErrorLaboratorio as e:
         print("Error:", e)
 
 
-#"Listar
+##Listar
 
 def listar_criterios(sistema):
-    print("\n-- Criterios --")
     if len(sistema.criterios) == 0:
         print("No hay criterios registrados.")
         return
+    print()
+    filas = []
     for criterio in sistema.criterios:
-        print(criterio)
+        filas.append([str(criterio.codigo), criterio.nombre, str(criterio.peso)])
+    imprimir_tabla(["Código", "Nombre", "Peso"], filas)
 
 
 def listar_opciones(sistema):
-    print("Opciones de IA")
     if len(sistema.opciones) == 0:
         print("No hay opciones registradas.")
         return
+    encabezados = ["Código", "Nombre", "Tipo", "Costo mensual"]
+    for criterio in sistema.criterios:
+        encabezados.append(criterio.nombre)
+
+    filas = []
     for opcion in sistema.opciones:
-        print(opcion)
-        print("   Costo mensual:", opcion.costo_estimado())
+        fila = [
+            str(opcion.codigo),
+            opcion.nombre,
+            opcion.tipo(),
+            usd(opcion.costo_estimado()),
+        ]
         for criterio in sistema.criterios:
-            print("   " + criterio.nombre + ": " + str(opcion.puntajes[criterio.codigo]))
+            fila.append(str(opcion.puntajes[criterio.codigo]))
+        filas.append(fila)
+
+    print()
+    imprimir_tabla(encabezados, filas)
+    print()
+    for opcion in sistema.opciones:
+        print(opcion.nombre + ": " + opcion.descripcion_costo())
 
 
 def listar_casos(sistema):
-    print("Casos de uso")
     if len(sistema.casos) == 0:
         print("No hay casos de uso registrados.")
         return
+    filas = []
     for caso in sistema.casos:
-        recomendadas = sistema.cantidad_recomendadas(caso.codigo)
-        print(str(caso) + " | Recomendadas: " + str(recomendadas))
+        filas.append([
+            str(caso.codigo),
+            caso.nombre,
+            usd(caso.presupuesto),
+            f"{caso.puntaje_minimo:.2f}",
+            str(sistema.cantidad_recomendadas(caso.codigo)),
+        ])
+    print()
+    imprimir_tabla(
+        ["Código", "Nombre", "Presupuesto", "Mínimo", "Recomendadas"], filas
+    )
 
 
 def listar_evaluaciones(sistema):
-    print("Evaluaciones de un caso")
     caso = elegir_caso(sistema)
     if caso is None:
         return
     evaluaciones = sistema.evaluaciones_de_caso(caso.codigo)
+    print("\nEVALUACIONES DE " + caso.nombre.upper())
+    print("Presupuesto actual:", usd(caso.presupuesto))
+    print(f"Puntaje mínimo: {caso.puntaje_minimo:.2f}")
+    print()
     if len(evaluaciones) == 0:
         print("No existen evaluaciones para este caso.")
         return
+    filas = []
     for ev in evaluaciones:
-        print(
-            str(ev.codigo)
-            + " | " + ev.fecha.strftime("%d/%m/%Y %H:%M")
-            + " | " + ev.opcion.nombre
-            + " | Presupuesto del caso: " + str(ev.caso.presupuesto)
-            + " | Costo: " + str(ev.costo_total())
-            + " | Puntaje: " + format(ev.puntaje_total(), ".2f")
-            + " | Estado: " + ev.estado
-        )
+        filas.append([
+            str(ev.codigo),
+            ev.fecha_texto(),
+            ev.opcion.nombre,
+            usd(ev.caso.presupuesto),
+            usd(ev.costo_total()),
+            f"{ev.puntaje_total():.2f}",
+            ev.estado,
+        ])
+    imprimir_tabla(
+        ["Código", "Fecha", "Opción", "Presupuesto", "Costo mensual", "Puntaje", "Estado"],
+        filas,
+    )
 
 
 def listar_ranking(sistema):
-    print("Ranking de un caso")
     caso = elegir_caso(sistema)
     if caso is None:
         return
     ranking = sistema.ranking_de_caso(caso.codigo)
+    print("\nRANKING DE " + caso.nombre.upper())
+    print()
     if len(ranking) == 0:
         print("No hay opciones recomendadas para este caso.")
         return
+    filas = []
     posicion = 1
     for ev in ranking:
-        print(
-            str(posicion)
-            + ". " + ev.opcion.nombre
-            + " | Puntaje: " + format(ev.puntaje_total(), ".2f")
-            + " | Costo: " + str(ev.costo_total())
-        )
+        filas.append([
+            str(posicion),
+            ev.opcion.nombre,
+            f"{ev.puntaje_total():.2f}",
+            usd(ev.costo_total()),
+        ])
         posicion = posicion + 1
+    imprimir_tabla(["Posición", "Opción", "Puntaje", "Costo mensual"], filas)
+    print("\nTotal de opciones recomendadas:", len(ranking))
 
 
 ##Menús
@@ -333,13 +492,13 @@ def listar_ranking(sistema):
 def menu_registrar(sistema):
     salir = False
     while not salir:
-        print("Registrar")
+        print("\nREGISTRAR")
         print("1. Criterio")
         print("2. Opción de IA")
         print("3. Caso de uso")
         print("4. Evaluación individual")
         print("5. Salir")
-        opcion = pedir_entero("Elija una opción: ", 1, 5)
+        opcion = pedir_entero("\nSeleccione una opción: ", 1, 5)
         if opcion == 1:
             registrar_criterio(sistema)
         elif opcion == 2:
@@ -355,11 +514,11 @@ def menu_registrar(sistema):
 def menu_actualizar(sistema):
     salir = False
     while not salir:
-        print("Actualizar")
+        print("\nACTUALIZAR")
         print("1. Presupuesto de un caso")
         print("2. Precio o consumo de una opción")
         print("3. Salir")
-        opcion = pedir_entero("Elija una opción: ", 1, 3)
+        opcion = pedir_entero("\nSeleccione una opción: ", 1, 3)
         if opcion == 1:
             actualizar_presupuesto_caso(sistema)
         elif opcion == 2:
@@ -371,14 +530,14 @@ def menu_actualizar(sistema):
 def menu_listar(sistema):
     salir = False
     while not salir:
-        print("Listar")
+        print("\nLISTAR")
         print("1. Criterios")
         print("2. Opciones")
         print("3. Casos de uso")
         print("4. Evaluaciones de un caso")
         print("5. Ranking de un caso")
         print("6. Salir")
-        opcion = pedir_entero("Elija una opción: ", 1, 6)
+        opcion = pedir_entero("\nSeleccione una opción: ", 1, 6)
         if opcion == 1:
             listar_criterios(sistema)
         elif opcion == 2:
@@ -397,13 +556,13 @@ def main():
     sistema = Sistema()
     salir = False
     while not salir:
-        print("Comparador de opciones de IA")
+        print("\nMENÚ PRINCIPAL")
         print("1. Registrar")
         print("2. Comparar opciones para un caso")
         print("3. Actualizar")
         print("4. Listar")
         print("5. Salir del sistema")
-        opcion = pedir_entero("Elija una opción: ", 1, 5)
+        opcion = pedir_entero("\nSeleccione una opción: ", 1, 5)
         if opcion == 1:
             menu_registrar(sistema)
         elif opcion == 2:
@@ -414,7 +573,11 @@ def main():
             menu_listar(sistema)
         else:
             salir = True
-    print("Hasta luego.")
+    print("Programa finalizado.")
 
 
-main()
+if __name__ == "__main__":
+    try:
+        main()
+    except (KeyboardInterrupt, EOFError):
+        print("\nPrograma finalizado.")

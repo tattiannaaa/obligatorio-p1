@@ -29,3 +29,6 @@ class Criterio:
         if not isinstance(valor, int) or valor <= 0:
             raise ErrorLaboratorio("El peso debe ser un entero positivo.")
         self.__peso = valor
+
+    def __str__(self):
+        return f"{self.__codigo} - {self.__nombre} (peso {self.__peso})"
