@@ -44,9 +44,9 @@ class Evaluacion():
         return suma_ponderada / suma_pesos
 
     def actualizar_estado(self):
-        costo = self.costo_total()
+        costo = round(self.costo_total(), 2)
         puntaje = self.puntaje_total()
-        presupuesto = self.__caso.presupuesto
+        presupuesto = round(self.__caso.presupuesto, 2)
         minimo = self.__caso.puntaje_minimo
 
         if costo > presupuesto:

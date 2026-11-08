@@ -40,7 +40,10 @@ def pedir_decimal(mensaje, minimo, maximo=None):
         texto = input(mensaje).strip().replace(",", ".")
         try:
             numero = float(texto)
-            if numero < minimo:
+
+            if numero != numero:
+                print("Debe ingresar un número.")
+            elif numero < minimo:
                 print("El valor debe ser mayor o igual que " + str(minimo) + ".")
             elif maximo is not None and numero > maximo:
                 print("El valor debe ser menor o igual que " + str(maximo) + ".")
@@ -436,4 +439,5 @@ def main():
     print("Hasta luego.")
 
 
-main()
+if __name__ == "__main__":
+    main()
